@@ -22,7 +22,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   image$: Promise<string>;
   constructor(
     private formBuilder: FormBuilder,
-  ){}
+  ) { }
 
   ngOnInit() {
     this.buildForm();
