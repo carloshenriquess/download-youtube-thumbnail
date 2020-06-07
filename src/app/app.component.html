@@ -1,13 +1,42 @@
-<form [formGroup]="formGroup" #form>
-  <input formControlName="url" type="text" placeholder="Youtube URL">
-  <button type="submit" [disabled]="formGroup.invalid">Submit</button>
-</form>
+<div class="l-container">
+  <form class="c-form" [formGroup]="formGroup">
+    <input class="c-form__input" formControlName="url" type="text" placeholder="Youtube URL or video ID" />
+    <button class="c-form__button" type="button" (click)="onClickPaste()" [disabled]="formGroup.invalid">
+      <i-feather name="clipboard" class="c-form__button-icon"></i-feather>
+    </button>
+  </form>
+  <ng-container *ngIf="thumbsEvent$ | async as thumbEvent">
+    <ng-container [ngSwitch]="true">
+      <ng-template *ngSwitchCase="thumbEvent.type === 0" [ngTemplateOutlet]="loadingTemplate"></ng-template>
+      <ng-template
+        *ngSwitchCase="thumbEvent.type === 1"
+        [ngTemplateOutlet]="imagesTemplate"
+        [ngTemplateOutletContext]="{ $implicit: thumbEvent }"
+      ></ng-template>
+      <ng-template
+        *ngSwitchCase="thumbEvent.type === 2"
+        [ngTemplateOutlet]="errorTemplate"
+        [ngTemplateOutletContext]="{ $implicit: thumbEvent.errorMessage }"
+      ></ng-template>
+    </ng-container>
+  </ng-container>
+</div>
 
-<ng-container *ngIf="!loading; else imgTemplate">
-  <img [src]="image" alt="Image" *ngIf="image$ | async as image">
-</ng-container>
+<ng-template #imagesTemplate let-thumbEvent>
+  <ul class="l-image-list">
+    <li class="c-image" *ngFor="let thumbnail of thumbEvent.thumbnails">
+      <div class="c-image__caption">{{ thumbnail.resolution }}</div>
+      <img class="c-image__image" [src]="thumbnail.url" [alt]="thumbnail.name" />
+    </li>
+  </ul>
+</ng-template>
 
+<ng-template #loadingTemplate>
+  <div class="l-loader">
+    <div class="c-loader"></div>
+  </div>
+</ng-template>
 
-<ng-template #imgTemplate>
-  Loading...
+<ng-template #errorTemplate let-message>
+  <div class="l-error">{{ message }}</div>
 </ng-template>

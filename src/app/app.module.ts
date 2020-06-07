@@ -1,7 +1,9 @@
-import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgModule } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
+import { FeatherModule } from 'angular-feather';
+import { Clipboard } from 'angular-feather/icons';
 
 import { AppComponent } from './app.component';
 
@@ -12,9 +14,9 @@ import { AppComponent } from './app.component';
   imports: [
     BrowserModule,
     CommonModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    FeatherModule.pick({ Clipboard }),
   ],
-  providers: [],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

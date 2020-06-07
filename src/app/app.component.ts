@@ -1,59 +1,56 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { fromEvent } from 'rxjs';
-import { filter, map, distinctUntilChanged } from 'rxjs/operators';
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup } from '@angular/forms';
+import { Observable } from 'rxjs';
+import { catchError, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators';
 
-const getMaxresThumbnailUrl = (videoUrl: string) => {
-  return videoUrl
-    .replace('www.youtube', 'i.ytimg')
-    .replace('watch?v=', 'vi/')
-    .concat('/maxresdefault.jpg');
-};
+import { GetThumbsEvent } from './models';
+import { getThumbs, parseUrl } from './util';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent implements OnInit, AfterViewInit {
-  @ViewChild('form') form: ElementRef<HTMLFormElement>;
+export class AppComponent implements OnInit {
   formGroup: FormGroup;
-  loading = false;
-  image$: Promise<string>;
+  thumbsEvent$: Observable<GetThumbsEvent>;
   constructor(
     private formBuilder: FormBuilder,
   ) { }
 
+
   ngOnInit() {
     this.buildForm();
-  }
-  ngAfterViewInit() {
-    this.setupSubmitListener();
+    this.thumbsEvent$ = this.getValueChangesObservable();
   }
 
-  private setupSubmitListener() {
-    const url$ = fromEvent(this.form.nativeElement, 'submit').pipe(
-      filter(() => this.formGroup.valid),
-      map(() => this.formGroup.value.url),
-      map(getMaxresThumbnailUrl),
-      distinctUntilChanged(),
+  onClickPaste() {
+    navigator.clipboard.readText().then(
+      result => this.formGroup.patchValue({ url: result }),
+      reject => console.log('Too bad...')
     );
-
-    url$.subscribe(url => {
-      this.loading = true;
-      const img = new Image();
-      img.src = url;
-      img.onload = () => {
-        this.image$ = Promise.resolve(url);
-        this.loading = false;
-      }
-    })
   }
 
   private buildForm() {
     this.formGroup = this.formBuilder.group({
-      url: [null, Validators.required]
+      url: null
     });
   }
 
+  private getValueChangesObservable(): Observable<GetThumbsEvent> {
+    return this.formGroup.get('url').valueChanges.pipe(
+      filter(value => value),
+      map(parseUrl),
+      distinctUntilChanged(),
+      switchMap(getThumbs),
+      catchError(err => this.handleValueChangesError(err)),
+    );
+  }
+
+  private handleValueChangesError(err: Error): Observable<GetThumbsEvent> {
+    const errorEvent: GetThumbsEvent = { type: 2, errorMessage: err.message };
+    return this.getValueChangesObservable().pipe(
+      startWith(errorEvent)
+    );
+  }
 }
