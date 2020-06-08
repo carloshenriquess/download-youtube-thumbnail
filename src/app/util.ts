@@ -7,35 +7,56 @@ export const parseUrl = (url: string) => {
     return baseUrl + url;
   }
 
-  if (url.startsWith('www.youtube.com/')) {
-    url = 'https://' + url;
-  }
-
   if (!validateYoutubeUrl(url)) {
     throw new Error('Invalid URL or video ID');
   }
-  const videoId = new URL(url).searchParams.get('v');
+  const videoId = getVideoId(url);
   return baseUrl + videoId;
 };
 
-const hasUnsafeCharacter = (text: string): boolean => !!text.match(/[^A-z0-9-._~]/);
+const hasUnsafeCharacter = (text: string): boolean => {
+  return !!text.match(/[^A-z0-9-._~]/);
+};
 
 const validateYoutubeUrl = (url: string): boolean => {
+  let urlObj: URL;
   try {
-    const urlObj = new URL(url);
-    const videoId = urlObj.searchParams.get('v');
-    if (
-      urlObj.hostname !== 'www.youtube.com' ||
-      !videoId ||
-      hasUnsafeCharacter(videoId) ||
-      urlObj.pathname !== '/watch'
-    ) {
-      return false;
-    }
+    urlObj = new URL(url);
   } catch {
     return false;
   }
-  return true;
+
+  if (urlObj.protocol !== 'https:' && urlObj.protocol !== 'http:') {
+    return false;
+  }
+
+  let videoId: string;
+  switch (urlObj.hostname) {
+    case 'www.youtube.com':
+    case 'm.youtube.com':
+      videoId = urlObj.searchParams.get('v');
+      return videoId && !hasUnsafeCharacter(videoId) && urlObj.pathname === '/watch';
+
+    case 'youtu.be':
+      videoId = urlObj.pathname.slice(1);
+      return !hasUnsafeCharacter(videoId);
+
+    default:
+      return true;
+  }
+
+};
+
+const getVideoId = (url: string): string => {
+  const objUrl = new URL(url);
+
+  switch (objUrl.hostname) {
+    case 'www.youtube.com':
+    case 'm.youtube.com':
+      return objUrl.searchParams.get('v');
+    case 'youtu.be':
+      return objUrl.pathname.slice(1);
+  }
 };
 
 export const getThumbs = (videoUrl: string): Observable<GetThumbsEvent> => {
